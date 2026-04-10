@@ -3,7 +3,9 @@
 // ============================================================================
 
 export interface BagdockHiveConfig {
+  /** API key: embed key (ek_*), restricted key (rk_*), or legacy operator key (hk_*) */
   apiKey: string
+  /** API base URL. Falls back to BAGDOCK_API_URL env var, then https://api.bagdock.com */
   baseUrl?: string
   maxRetries?: number
   timeoutMs?: number
@@ -14,13 +16,9 @@ export type AuthProvider = 'stytch' | 'clerk' | 'auth0' | 'custom'
 
 export interface AuthAdapterConfig {
   provider: AuthProvider
-  /** For Clerk: publishable key; for Auth0: client ID; for custom: JWKS URI */
   clientId?: string
-  /** For Auth0: domain (e.g., my-app.us.auth0.com) */
   domain?: string
-  /** For custom JWKS auth: the JWKS endpoint URL */
   jwksUri?: string
-  /** For custom auth: function that returns the current access token */
   getToken?: () => Promise<string | null>
 }
 
@@ -49,7 +47,7 @@ export interface AuthAdapter {
 }
 
 // ============================================================================
-// EMBED TOKENS
+// EMBED TOKENS (legacy — use unified keys for new integrations)
 // ============================================================================
 
 export interface EmbedToken {
@@ -63,7 +61,7 @@ export interface EmbedToken {
 
 export type EmbedScope =
   | 'chat'
-  | 'booking'
+  | 'rental'
   | 'access'
   | 'billing'
   | 'units'
@@ -93,6 +91,7 @@ export interface ChatMessage {
   content: string
   timestamp: string
   parts?: ChatMessagePart[]
+  metadata?: Record<string, unknown>
 }
 
 export interface ChatMessagePart {
@@ -108,12 +107,14 @@ export interface ChatMessagePart {
 export interface ChatSession {
   id: string
   messages: ChatMessage[]
+  agentRole?: string
+  status?: string
   createdAt: string
   updatedAt: string
 }
 
 // ============================================================================
-// UNITS & BOOKING
+// UNITS & RENTAL
 // ============================================================================
 
 export interface HiveUnit {
@@ -129,7 +130,7 @@ export interface HiveUnit {
   features?: string[]
 }
 
-export interface BookingParams {
+export interface RentalParams {
   unitId: string
   moveInDate: string
   contactName: string
@@ -138,12 +139,17 @@ export interface BookingParams {
   addOns?: string[]
 }
 
-export interface BookingResult {
+export interface RentalResult {
   id: string
   status: 'confirmed' | 'pending' | 'failed'
   checkoutUrl?: string
   subscriptionId?: string
 }
+
+/** @deprecated Use RentalParams instead */
+export type BookingParams = RentalParams
+/** @deprecated Use RentalResult instead */
+export type BookingResult = RentalResult
 
 // ============================================================================
 // ACCESS
@@ -174,9 +180,31 @@ export interface ListParams {
   before?: string
 }
 
+// ============================================================================
+// ERRORS
+// ============================================================================
+
+export type HiveErrorCode =
+  | 'request_failed'
+  | 'server_error'
+  | 'network_error'
+  | 'timeout'
+  | 'unknown_error'
+  // Auth errors
+  | 'unauthorized'
+  | 'key_expired'
+  | 'key_revoked'
+  | 'scope_insufficient'
+  | 'origin_not_allowed'
+  | 'rate_limited'
+  // Request errors
+  | 'invalid_request'
+  | 'not_found'
+  | 'conflict'
+
 export class BagdockHiveError extends Error {
   readonly status: number
-  readonly code: string
+  readonly code: HiveErrorCode | string
   readonly requestId?: string
 
   constructor(message: string, status: number, code: string, requestId?: string) {
@@ -186,4 +214,40 @@ export class BagdockHiveError extends Error {
     this.code = code
     this.requestId = requestId
   }
+
+  get isAuthError(): boolean {
+    return this.status === 401 || this.status === 403
+  }
+
+  get isRateLimited(): boolean {
+    return this.status === 429 || this.code === 'rate_limited'
+  }
+
+  get isRetryable(): boolean {
+    return this.status >= 500 || this.code === 'network_error' || this.code === 'timeout'
+  }
+}
+
+// ============================================================================
+// KEY HELPERS
+// ============================================================================
+
+export type HiveKeyType = 'embed' | 'restricted' | 'legacy' | 'unknown'
+
+/** Detect key type from prefix: ek_* → embed, rk_* → restricted, hk_* → legacy */
+export function detectKeyType(key: string): HiveKeyType {
+  if (key.startsWith('ek_')) return 'embed'
+  if (key.startsWith('rk_')) return 'restricted'
+  if (key.startsWith('hk_')) return 'legacy'
+  return 'unknown'
+}
+
+/** Check if the key is a test/sandbox key */
+export function isTestKey(key: string): boolean {
+  return key.startsWith('ek_test_') || key.startsWith('rk_test_')
+}
+
+/** Check if the key is a live/production key */
+export function isLiveKey(key: string): boolean {
+  return key.startsWith('ek_live_') || key.startsWith('rk_live_')
 }
