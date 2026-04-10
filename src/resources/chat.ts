@@ -28,21 +28,30 @@ export class Chat {
   }
 
   /**
-   * Stream a chat response. Returns a ReadableStream of server-sent events.
-   * Use this for real-time AI responses.
+   * Stream a chat response. Returns a raw Response with proper auth headers.
+   * The response body is an AI SDK–compatible UI message stream.
+   *
+   * @example
+   * ```ts
+   * const response = await hive.chat.stream(sessionId, messages)
+   * // response.body is a ReadableStream of server-sent events
+   * ```
    */
-  async stream(sessionId: string, message: string): Promise<Response> {
-    const url = new URL(
-      `/api/v1/hive/chat/sessions/${sessionId}/stream`,
-      (this.client as any).config?.baseUrl || 'https://api.bagdock.com',
-    )
-
-    return fetch(url.toString(), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ content: message }),
+  async stream(
+    messages: Array<{ role: string; content: string; [key: string]: unknown }>,
+    options?: {
+      sessionId?: string
+      currentAgent?: string
+      sessionCost?: number
+      searchContext?: Record<string, unknown>
+    },
+  ): Promise<Response> {
+    return this.client.rawRequest('POST', '/api/v1/hive/chat/stream', {
+      messages,
+      sessionId: options?.sessionId,
+      currentAgent: options?.currentAgent,
+      sessionCost: options?.sessionCost,
+      searchContext: options?.searchContext,
     })
   }
 }

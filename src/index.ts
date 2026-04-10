@@ -10,19 +10,30 @@ import type { BagdockHiveConfig, AuthAdapter } from './types'
  * Bagdock Hive SDK
  *
  * Embeddable AI-powered storage management platform with pluggable auth.
- * Supports Stytch, Clerk, Auth0, and custom JWT-based authentication.
+ * Supports embed keys (ek_*), restricted keys (rk_*), and legacy operator keys.
  *
  * @example
  * ```ts
+ * // With an embed key (client-side)
+ * const hive = new BagdockHive({
+ *   apiKey: 'ek_live_...',
+ * })
+ *
  * // With Clerk auth
  * const hive = new BagdockHive({
- *   apiKey: 'hk_live_...',
+ *   apiKey: 'ek_live_...',
  *   auth: { provider: 'clerk', getToken: () => getToken() },
  * })
  *
  * // Scoped to a specific operator
  * const ops = hive.forOperator('opreg_abc123')
  * const units = await ops.units.list({ status: 'available' })
+ *
+ * // Local dev with ngrok
+ * const hive = new BagdockHive({
+ *   apiKey: 'ek_test_...',
+ *   baseUrl: 'https://abc123.ngrok.io',
+ * })
  * ```
  */
 export class BagdockHive {
@@ -56,14 +67,14 @@ export class BagdockHive {
     this.embedTokens = new EmbedTokens(this._client)
   }
 
+  /** The resolved base URL the SDK is connecting to */
+  get baseUrl(): string {
+    return this._client.baseUrl
+  }
+
   /**
    * Returns a scoped client for a specific operator.
    * All requests will include the X-Bagdock-Operator-Id header.
-   *
-   * @example
-   * const hive = new BagdockHive({ apiKey: 'hk_live_...' })
-   * const wise = hive.forOperator('opreg_wisestorage')
-   * const units = await wise.units.list()
    */
   forOperator(operatorId: string): BagdockHive {
     const scopedClient = this._client.withOperatorId(operatorId)
@@ -94,8 +105,12 @@ export class BagdockHive {
   }
 }
 
+// Transport for AI SDK useChat integration
+export { HiveChatTransport } from './transport'
+export type { HiveChatTransportConfig } from './transport'
+
 // Re-export types
-export { BagdockHiveError } from './types'
+export { BagdockHiveError, detectKeyType, isTestKey, isLiveKey } from './types'
 export type {
   BagdockHiveConfig,
   AuthProvider,
@@ -111,11 +126,15 @@ export type {
   ChatMessagePart,
   ChatSession,
   HiveUnit,
+  RentalParams,
+  RentalResult,
   BookingParams,
   BookingResult,
   AccessCode,
   ListResponse,
   ListParams,
+  HiveKeyType,
+  HiveErrorCode,
 } from './types'
 
 // Re-export auth adapters
