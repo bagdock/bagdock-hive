@@ -24,6 +24,7 @@
  */
 
 import type { AuthAdapter } from './types'
+import { scrubMessagesForModel } from '@bagdock/pii-patterns'
 
 export interface HiveChatTransportConfig {
   apiKey: string
@@ -97,7 +98,7 @@ export class HiveChatTransport {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${this.config.apiKey}`,
-      'User-Agent': '@bagdock/hive/0.2.0',
+      'User-Agent': '@bagdock/hive/0.3.0',
       ...this.config.headers,
       ...userHeaders,
     }
@@ -125,8 +126,10 @@ export class HiveChatTransport {
       }
     }
 
+    const scrubbedMessages = scrubMessagesForModel(messages)
+
     const requestBody = {
-      messages,
+      messages: scrubbedMessages,
       sessionId: this.sessionId,
       currentAgent: this.currentAgent,
       searchContext: this.config.searchContext,
