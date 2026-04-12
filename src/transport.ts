@@ -127,13 +127,14 @@ export class HiveChatTransport {
     }
 
     const scrubbedMessages = scrubMessagesForModel(messages)
+    const { messages: _, ...safeUserBody } = userBody ?? {}
 
     const requestBody = {
+      ...safeUserBody,
       messages: scrubbedMessages,
       sessionId: this.sessionId,
       currentAgent: this.currentAgent,
       searchContext: this.config.searchContext,
-      ...userBody,
     }
 
     const response = await this.fetchFn(url, {
