@@ -23,7 +23,17 @@ Embeddable AI-powered storage management for your app — streaming chat, plugga
 
 ```bash
 npm install @bagdock/hive
-# or
+```
+
+```bash
+yarn add @bagdock/hive
+```
+
+```bash
+pnpm add @bagdock/hive
+```
+
+```bash
 bun add @bagdock/hive
 ```
 
@@ -266,6 +276,9 @@ BAGDOCK_API_URL=https://abc123.ngrok.io bun run dev
 | `detectKeyType(key)` | Returns `'embed'`, `'restricted'`, `'webhook'`, or `'unknown'` |
 | `isTestKey(key)` | `true` if key contains `_test_` |
 | `isLiveKey(key)` | `true` if key contains `_live_` |
+| `scrubPii(text)` | Redact PII from a single string (re-exported from `@bagdock/pii-patterns`) |
+| `scrubPiiDeep(value)` | Recursively scrub PII from objects and arrays |
+| `scrubMessagesForModel(messages)` | Scrub PII from `user` role messages before AI inference |
 
 ## Configuration
 
@@ -296,6 +309,7 @@ BAGDOCK_API_URL=https://abc123.ngrok.io bun run dev
 ## Security
 
 - **HTTPS enforced** in production — the SDK throws if a non-`https://` base URL is used when `NODE_ENV=production`
+- **Client-side PII scrubbing** — `chat.send()`, `chat.stream()`, and `HiveChatTransport` automatically scrub PII from user messages before they leave the browser (defense-in-depth via `@bagdock/pii-patterns`). Server-side WASM scrubbing remains authoritative.
 - **Embed keys** (`ek_*`) are origin-locked and safe for client-side use
 - **Restricted keys** (`rk_*`) should only be used server-side
 - **Never** expose `rk_*` or `whsec_*` keys in client-side code
