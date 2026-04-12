@@ -1,6 +1,6 @@
 {
   "name": "@bagdock/hive",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Bagdock Hive SDK — embeddable AI-powered storage platform with pluggable auth",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

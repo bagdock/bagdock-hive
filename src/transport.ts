@@ -98,7 +98,7 @@ export class HiveChatTransport {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${this.config.apiKey}`,
-      'User-Agent': '@bagdock/hive/0.3.0',
+      'User-Agent': '@bagdock/hive/0.3.1',
       ...this.config.headers,
       ...userHeaders,
     }
