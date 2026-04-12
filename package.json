@@ -1,6 +1,6 @@
 {
   "name": "@bagdock/hive",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Bagdock Hive SDK — embeddable AI-powered storage platform with pluggable auth",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -19,6 +19,9 @@
     "build": "tsup src/index.ts --format cjs,esm --dts --clean",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
     "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@bagdock/pii-patterns": "^0.1.0"
   },
   "peerDependencies": {
     "ai": ">=4.0.0"

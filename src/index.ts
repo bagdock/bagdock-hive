@@ -139,3 +139,6 @@ export type {
 
 // Re-export auth adapters
 export { createAuthAdapter, StytchAdapter, ClerkAdapter, Auth0Adapter, CustomAuthAdapter } from './auth'
+
+// Re-export PII scrubbing from @bagdock/pii-patterns for consumer convenience
+export { scrubPii, scrubPiiDeep, scrubMessagesForModel } from '@bagdock/pii-patterns'
