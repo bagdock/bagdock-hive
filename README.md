@@ -135,9 +135,71 @@ const stream = hive.chat.stream({
 })
 ```
 
-**Supported providers:** Clerk, Auth0, Stytch, or any custom JWT.
+**Supported providers:** Clerk, Auth0, Stytch (client-side), or any custom JWT.
 
-### 3. Operator-scoped (multi-tenant)
+### 3. Server-side proxy (httpOnly cookies)
+
+If your auth provider uses httpOnly cookies (e.g. Stytch session tokens), the JWT is **not accessible to client-side JavaScript**. Use a thin server-side proxy that authenticates and forwards requests to the Bagdock API.
+
+```mermaid
+sequenceDiagram
+  participant User
+  participant Browser
+  participant Proxy as Your API Route<br/>(Next.js / Express)
+  participant API as Bagdock API
+
+  User->>Browser: Chat message
+  Browser->>Proxy: POST /api/hive/stream<br/>(httpOnly cookie sent automatically)
+  Proxy->>Proxy: Read cookie, authenticate server-side
+  Proxy->>API: POST /hive/chat/stream<br/>+ Authorization: Bearer ek_live_...<br/>+ X-Bagdock-User-Token: jwt
+  API-->>Proxy: SSE stream
+  Proxy-->>Browser: SSE stream (passthrough)
+```
+
+```typescript
+// app/api/hive/stream/route.ts (Next.js App Router)
+import { type NextRequest } from 'next/server'
+
+export async function POST(req: NextRequest) {
+  // 1. Read httpOnly cookie (never exposed to client JS)
+  const sessionToken = req.cookies.get('stytch_session')?.value
+
+  // 2. Authenticate server-side
+  const headers: Record<string, string> = {
+    'Authorization': `Bearer ${process.env.HIVE_EMBED_KEY}`,
+    'Content-Type': 'application/json',
+  }
+  if (sessionToken) {
+    const session = await stytch.sessions.authenticate({ session_token: sessionToken })
+    headers['X-Bagdock-User-Token'] = session.session_jwt
+    headers['X-Bagdock-Contact-Id'] = session.user.user_id
+  }
+
+  // 3. Forward to Bagdock API
+  const upstream = await fetch(
+    `${process.env.HIVE_API_URL}/api/v1/hive/chat/stream`,
+    { method: 'POST', headers, body: req.body, duplex: 'half' as any },
+  )
+
+  // 4. Stream response back to client
+  return new Response(upstream.body, {
+    status: upstream.status,
+    headers: { 'Content-Type': 'text/event-stream' },
+  })
+}
+```
+
+> **Security:** Use this pattern when your auth provider uses httpOnly cookies. The JWT and embed key never leave your server — they are not accessible to client-side JavaScript or `NEXT_PUBLIC_` environment variables. This satisfies SOC 2 CC6.1, CC6.3 and GDPR Art. 32 requirements.
+
+### Auth pattern decision guide
+
+| Your auth setup | Recommended pattern | Example |
+|---|---|---|
+| Client-accessible JWT (Clerk, Auth0, Firebase) | `auth` adapter directly | `auth: { provider: 'clerk', getToken }` |
+| httpOnly session cookies (Stytch, custom cookies) | Server-side proxy | Next.js API route → Bagdock API |
+| Server-to-server (backend integrations) | Restricted key (`rk_*`) | `apiKey: 'rk_live_...'` |
+
+### 4. Operator-scoped (multi-tenant)
 
 Scope all requests to a specific operator — their facilities, pricing, and branding.
 
