@@ -1,5 +1,6 @@
 import type { HttpClient } from '../client'
 import type { ChatSession, ChatMessage, ListResponse } from '../types'
+import { scrubPii, scrubMessagesForModel } from '@bagdock/pii-patterns'
 
 export class Chat {
   constructor(private client: HttpClient) {}
@@ -16,7 +17,7 @@ export class Chat {
 
   async send(sessionId: string, message: string): Promise<ChatMessage> {
     return this.client.request('POST', `/api/v1/hive/chat/sessions/${sessionId}/messages`, {
-      content: message,
+      content: scrubPii(message),
     })
   }
 
@@ -46,8 +47,9 @@ export class Chat {
       searchContext?: Record<string, unknown>
     },
   ): Promise<Response> {
+    const scrubbedMessages = scrubMessagesForModel(messages)
     return this.client.rawRequest('POST', '/api/v1/hive/chat/stream', {
-      messages,
+      messages: scrubbedMessages,
       sessionId: options?.sessionId,
       currentAgent: options?.currentAgent,
       sessionCost: options?.sessionCost,
