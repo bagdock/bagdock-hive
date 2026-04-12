@@ -7,7 +7,7 @@ export class Chat {
 
   async create(initialMessage?: string): Promise<ChatSession> {
     return this.client.request('POST', '/api/v1/hive/chat/sessions', {
-      message: initialMessage,
+      message: initialMessage ? scrubPii(initialMessage) : undefined,
     })
   }
 

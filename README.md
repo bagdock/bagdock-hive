@@ -309,7 +309,7 @@ BAGDOCK_API_URL=https://abc123.ngrok.io bun run dev
 ## Security
 
 - **HTTPS enforced** in production — the SDK throws if a non-`https://` base URL is used when `NODE_ENV=production`
-- **Client-side PII scrubbing** — `chat.send()`, `chat.stream()`, and `HiveChatTransport` automatically scrub PII from user messages before they leave the browser (defense-in-depth via `@bagdock/pii-patterns`). Server-side WASM scrubbing remains authoritative.
+- **Client-side PII scrubbing** — `chat.create()`, `chat.send()`, `chat.stream()`, and `HiveChatTransport` automatically scrub PII from user messages before they leave your application (defense-in-depth via `@bagdock/pii-patterns`). Server-side WASM scrubbing remains authoritative.
 - **Embed keys** (`ek_*`) are origin-locked and safe for client-side use
 - **Restricted keys** (`rk_*`) should only be used server-side
 - **Never** expose `rk_*` or `whsec_*` keys in client-side code
