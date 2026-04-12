@@ -1,4 +1,4 @@
-name: Auto Release
+name: Auto Release & Publish
 
 on:
   push:
@@ -7,9 +7,10 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
-  release:
+  release-and-publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -38,3 +39,16 @@ jobs:
             --generate-notes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: oven-sh/setup-bun@v2
+        if: steps.check.outputs.exists == 'false'
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.exists == 'false'
+        with:
+          node-version: 22
+      - run: bun install
+        if: steps.check.outputs.exists == 'false'
+      - run: bunx tsup src/index.ts --format cjs,esm --dts --clean
+        if: steps.check.outputs.exists == 'false'
+      - run: npx npm@latest publish --provenance --access public
+        if: steps.check.outputs.exists == 'false'
